@@ -57,8 +57,7 @@ This also serves as a strong foundation before adding multimodal data layers.
 - Handled **GitHub repository management**, including structure, version control, and documentation organization  
 
 ## Ushta Samal
-- Performed Cytoscape and identified hub genes
-- Designed the **end-to-end workflow pipeline**, selecting appropriate tools and methodologies for each stage  
+- Performed Cytoscape and identified hub genes 
 
 ## Cindy 
 - Performed ARACNe to infer direct TF-to-target relationships from the gene modules found from WGCNA
