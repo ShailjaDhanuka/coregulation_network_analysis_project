@@ -2,10 +2,21 @@ library(WGCNA)
 library(clusterProfiler)
 library(org.Hs.eg.db)
 library(readr)
+library(dplyr)
 
 
 
-obj<-readRDS("seu_object_preprocessed.rds")
+input_obj <- "data/WGCNA/seu_object_preprocessed.rds"
+plot_dir <- "workflow/WGCNA/plots"
+output_dir <- "data/WGCNA"
+cytoscape_dir <- "data/Cytoscape"
+
+dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(cytoscape_dir, recursive = TRUE, showWarnings = FALSE)
+
+obj<-readRDS(input_obj)
+normalized_counts <- GetAssayData(obj, assay = "RNA", layer = "data")
 
 #we still dont have any metadata, so, 
 # either manual annotations or using azimuth (automatic annotations). We will do the automatic annotations using azimuth
@@ -57,7 +68,7 @@ sft <- pickSoftThreshold(datExpr, powerVector = powers)
 
 # this plot is to pick a power for the actual wgcna thign
 
-png("picking_power_for_wgcna.png", width = 2000, height = 1500, res = 300)  # high-res
+png(file.path(plot_dir, "picking_power_for_wgcna.png"), width = 2000, height = 1500, res = 300)  # high-res
 # you must explicitly print the ggplot object
 
 p<-plot(
@@ -139,7 +150,7 @@ length(net$blockGenes[[1]])
 
 for(i in 1:length(net$dendrograms)){
   save_name<-paste0("block",i, "_Cluster_Dendrogram.png")
-  png(save_name, width = 2000, height = 1500, res = 300)  # high-res
+  png(file.path(plot_dir, save_name), width = 2000, height = 1500, res = 300)  # high-res
   
   p<- plotDendroAndColors(
     title=save_name,
@@ -303,7 +314,7 @@ module_df <- data.frame(
 )
 
 write_delim(module_df,
-            file = "gene_modules.txt",
+            file = file.path(output_dir, "gene_modules.txt"),
             delim = "\t")
 
 genes_of_interest = module_df %>%
@@ -436,8 +447,8 @@ nodes <- data.frame(
 )
 
 # 6. Save
-write.csv(edges, "cytoscape_edges.csv", row.names = FALSE)
-write.csv(nodes, "cytoscape_nodes.csv", row.names = FALSE)
+write.csv(edges, file.path(cytoscape_dir, "cytoscape_edges.csv"), row.names = FALSE)
+write.csv(nodes, file.path(cytoscape_dir, "cytoscape_nodes.csv"), row.names = FALSE)
 
 cat("Edges:", nrow(edges), "\n")
 cat("Nodes:", nrow(nodes), "\n")

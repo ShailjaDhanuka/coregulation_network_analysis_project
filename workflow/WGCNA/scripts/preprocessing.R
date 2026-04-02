@@ -8,12 +8,14 @@ library(dplyr)
 # library(Azimuth)
 
 
+input_h5 <- "data/raw/10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.h5"
+plot_dir <- "workflow/WGCNA/plots"
+output_dir <- "data/WGCNA"
 
-getwd()
-setwd("Desktop/Shailja_everything/CMU_courses/FundamentalsOfBioinformatics/coregulation_network_analysis_project/")
+dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
+dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 
-
-counts <- Read10X_h5("10k_PBMC_Multiome_nextgem_Chromium_X_filtered_feature_bc_matrix.h5")
+counts <- Read10X_h5(input_h5)
 names(counts)
 
 rna_counts <- counts$`Gene Expression`
@@ -23,7 +25,7 @@ obj <- CreateSeuratObject(
   project = "PBMC_multiome"
 )
 
-#removing cells with too much mitochondria percentage
+#removing cells with more than 10% mitochondria percentage
 obj[["percent.mt"]] <- PercentageFeatureSet(obj, pattern = "^MT-")
 
 obj_no_mt <- subset(
@@ -36,7 +38,6 @@ obj_no_mt <- subset(
 
 
 # obj@meta.data$percent.mt
-
 
 obj <- NormalizeData(obj_no_mt)
 
@@ -63,7 +64,7 @@ obj <- RunUMAP(obj, dims = 1:30)
 # some plots for analysis - data visualization
 
 p<-DimPlot(obj, label = TRUE)
-png("umap_plot.png", width = 2000, height = 1500, res = 300)  # high-res
+png(file.path(plot_dir, "umap_plot.png"), width = 2000, height = 1500, res = 300)  # high-res
 print(p)   # you must explicitly print the ggplot object
 dev.off()
 
@@ -73,15 +74,16 @@ RunTSNE(obj)
 ##########################
 # save object
 #####################333
-saveRDS(obj,file = "seu_object_preprocessed.rds")
+saveRDS(obj,file = file.path(output_dir, "seu_object_preprocessed.rds"))
+
 pseudobulk_seu <- AggregateExpression(
   obj,
   group.by = "seurat_clusters",
   return.seurat = TRUE  # <-- keep as Seurat
 )
 
-saveRDS(pseudobulk_seu,file="pseudobulked_seu_obj.rds")
+saveRDS(pseudobulk_seu,file=file.path(output_dir, "pseudobulked_seu_obj.rds"))
 
 ###########
-# try to make a few more viz plots - violin based on clusters/ 
+
 
