@@ -3,59 +3,197 @@ library(clusterProfiler)
 library(org.Hs.eg.db)
 library(readr)
 library(dplyr)
+options(stringsAsFactors = FALSE)
+enableWGCNAThreads()
+
+#####################################################################33
+# WGCNA starthere
+################################
+
 
 
 setwd("./coregulation_network_analysis_project")
-input_raw <- "data/WGCNA/seu_object_preprocessed.rds"
-input_pb <-"data/WGCNA/pseudobulked_seu_obj.rds"
+# input_raw <- "data/WGCNA/seu_object_preprocessed.rds"
 plot_dir <- "workflow/WGCNA/plots"
 output_dir <- "data/WGCNA"
-cytoscape_dir <- "data/Cytoscape"
 
-dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
-dir.create(cytoscape_dir, recursive = TRUE, showWarnings = FALSE)
 
-obj_raw<-readRDS(input_raw)
-obj_pb<-readRDS(input_pb)
-normalized_counts <- GetAssayData(obj_raw, assay = "RNA", layer = "data")
+input<-readRDS("data/WGCNA/wgcna_input_matrix.rds")
 
-#we still dont have any metadata, so, 
-# either manual annotations or using azimuth (automatic annotations). We will do the automatic annotations using azimuth
+# picking threshold
+powers <- c(1:20)
 
-# manual annotations for practice
-# markers <- FindAllMarkers(obj,
-#                           only.pos = TRUE,
-#                           min.pct = 0.25,
-#                           logfc.threshold = 0.25)
-# markers %>%
-#   group_by(cluster) %>%
-#   top_n(10, avg_log2FC)
+sft <- pickSoftThreshold(
+  input,
+  powerVector  = powers,
+  networkType  = "signed",  # signed is better for scRNA - preserves direction of correlation
+  corFnc       = "bicor",   # biweight midcorrelation - more robust than pearson to outliers
+  verbose      = 5
+)
 
-# after this, manually identify markers and then label clusters into celtype_sum(
+# ── Step 2: Plot to choose power ─────────────────────────────────────────────
+png(file.path(plot_dir, "soft_threshold.png"), width = 2400, height = 1200, res = 300)
+par(mfrow = c(1, 2))
 
-# automatic annotation(cell type identification using azimuth)
+plot(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     xlab = "Soft threshold (power)",
+     ylab = "Scale-free topology fit R²",
+     main = "Scale independence",
+     type = "n")
+text(sft$fitIndices[, 1],
+     -sign(sft$fitIndices[, 3]) * sft$fitIndices[, 2],
+     labels = powers,
+     col = "red")
+abline(h = 0.8, col = "red", lty = 2)  # 0.8 is the standard cutoff
 
-# obj <- RunAzimuth(obj, reference = "pbmc")
+# Plot 2: Mean connectivity (should drop as power increases)
+plot(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     xlab = "Soft threshold (power)",
+     ylab = "Mean connectivity",
+     main = "Mean connectivity",
+     type = "n")
+text(sft$fitIndices[, 1],
+     sft$fitIndices[, 5],
+     labels = powers,
+     col = "red")
 
-# to do in preprocessing - remove some cells violin plot, umap and other visualization things
+dev.off()
 
-var_genes<-VariableFeatures(obj_pb)
-expr_matrix = normalized_counts[var_genes,]
+# Print the table to inspect numerically as well
+print(sft$fitIndices) # between 13 to 16 looks good, I chose 15
 
-# transpose for wgcna
-expr_t <- t(as.matrix(expr_matrix))
 
-# remove low expression genes
-expr_t <- expr_t[, colMeans(expr_t) > 0.1] 
 
-#wgcna check which samples are good to use
-gsg <- goodSamplesGenes(expr_t, verbose = 3)
-expr_t <- expr_t[gsg$goodSamples, gsg$goodGenes]
 
-# Check for outlier samples
-rsampleTree <- hclust(dist(expr_t), method = "average")
-plot(sampleTree)
+
+
+# #####
+# After blockwiseModules() finishes you will have:
+#   
+# A set of gene modules — groups of co-expressed, likely co-regulated genes
+# A module eigengene for each module — its expression profile across your pseudobulk clusters
+# A gene-module membership score for every gene — how central it is to its module
+# The TOM saved to disk — which you will use later to export edges to Cytoscape 
+# The grey module — genes that didn't fit anywhere, which you will discard
+
+
+
+softPower <- 15
+
+# ── Build the network and detect modules ──────────────────────────────────────
+net <- blockwiseModules(
+  pb_5000,
+  
+  # Network construction
+  power            = softPower,
+  networkType      = "signed",
+  corType          = "bicor",        # matches what you used in pickSoftThreshold
+  maxPOutliers     = 0.1,            # bicor parameter - caps outlier influence
+  
+  # TOM
+  TOMType          = "signed",
+  saveTOMs         = TRUE,
+  saveTOMFileBase  = file.path(output_dir, "TOM_block"),
+  
+  # Module detection
+  minModuleSize    = 30,             # minimum genes per module
+  deepSplit        = 2,              # 0-4, higher = more smaller modules
+  mergeCutHeight   = 0.25,           # modules with >75% eigengene correlation get merged
+  pamRespectsDendro = FALSE,
+  
+  # Computational
+  maxBlockSize     = 10000,          # covers your ~5000 genes in one block
+  numericLabels    = FALSE,          # use color labels
+  verbose          = 3,
+  seed             = 42
+)
+
+# ── Inspect output ────────────────────────────────────────────────────────────
+table(net$colors)   # how many genes per module
+# grey = unassigned genes, these are not modules
+
+# ── Plot dendrogram with module colors ────────────────────────────────────────
+png(file.path(plot_dir, "module_dendrogram.png"), width = 3000, height = 1500, res = 300)
+plotDendroAndColors(
+  net$dendrograms[[1]],
+  net$colors[net$blockGenes[[1]]],
+  "Module colors",
+  dendroLabels = FALSE,
+  hang         = 0.03,
+  addGuide     = TRUE,
+  guideHang    = 0.05,
+  main         = "Gene dendrogram and module colors"
+)
+dev.off()
+
+# ── Extract and save key outputs ──────────────────────────────────────────────
+# Module eigengenes (one expression profile per module per pseudobulk sample)
+# ── Extract outputs from net ───────────────────────────────────────────────────
+MEs <- net$MEs
+
+# Gene-to-module assignments (all genes including grey)
+gene_modules <- data.frame(
+  gene   = names(net$colors),
+  module = net$colors,
+  stringsAsFactors = FALSE
+)
+
+# ── Remove grey ────────────────────────────────────────────────────────────────
+gene_modules_filtered <- gene_modules[gene_modules$module != "grey", ]
+colors_no_grey        <- net$colors[net$colors != "grey"]
+module_genes          <- split(names(colors_no_grey), colors_no_grey)
+
+# ── Summary ────────────────────────────────────────────────────────────────────
+cat("Number of modules detected:", length(module_genes), "\n")
+cat("Genes assigned to modules:", nrow(gene_modules_filtered), "\n")
+cat("Unassigned (grey) genes removed:", sum(net$colors == "grey"), "\n")
+
+# ── Save ───────────────────────────────────────────────────────────────────────
+saveRDS(net,                    file = file.path(output_dir, "wgcna_net.rds"))
+saveRDS(MEs,                    file = file.path(output_dir, "module_eigengenes.rds"))
+saveRDS(module_genes,           file = file.path(output_dir, "module_gene_lists.rds"))
+write.table(gene_modules_filtered,
+            file      = file.path(output_dir, "gene_module_assignments.txt"),
+            sep       = "\t",
+            row.names = FALSE,
+            quote     = FALSE)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 #Pick soft threshold:
