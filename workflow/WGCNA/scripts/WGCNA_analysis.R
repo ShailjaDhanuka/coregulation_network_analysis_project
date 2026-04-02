@@ -5,8 +5,9 @@ library(readr)
 library(dplyr)
 
 
-
-input_obj <- "data/WGCNA/seu_object_preprocessed.rds"
+setwd("./coregulation_network_analysis_project")
+input_raw <- "data/WGCNA/seu_object_preprocessed.rds"
+input_pb <-"data/WGCNA/pseudobulked_seu_obj.rds"
 plot_dir <- "workflow/WGCNA/plots"
 output_dir <- "data/WGCNA"
 cytoscape_dir <- "data/Cytoscape"
@@ -15,8 +16,9 @@ dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(output_dir, recursive = TRUE, showWarnings = FALSE)
 dir.create(cytoscape_dir, recursive = TRUE, showWarnings = FALSE)
 
-obj<-readRDS(input_obj)
-normalized_counts <- GetAssayData(obj, assay = "RNA", layer = "data")
+obj_raw<-readRDS(input_raw)
+obj_pb<-readRDS(input_pb)
+normalized_counts <- GetAssayData(obj_raw, assay = "RNA", layer = "data")
 
 #we still dont have any metadata, so, 
 # either manual annotations or using azimuth (automatic annotations). We will do the automatic annotations using azimuth
@@ -38,28 +40,22 @@ normalized_counts <- GetAssayData(obj, assay = "RNA", layer = "data")
 
 # to do in preprocessing - remove some cells violin plot, umap and other visualization things
 
+var_genes<-VariableFeatures(obj_pb)
+expr_matrix = normalized_counts[var_genes,]
 
-obj@meta.data
-pseudobulk <- AggregateExpression(
-  obj,
-  group.by = "seurat_clusters",
-  return.seurat = FALSE
-)
+# transpose for wgcna
+expr_t <- t(as.matrix(expr_matrix))
 
-pseudobulk$RNA
+# remove low expression genes
+expr_t <- expr_t[, colMeans(expr_t) > 0.1] 
 
-expr <- pseudobulk$RNA
-expr <- log1p(expr)
-# filter low variance 
-gene_variance <- apply(expr, 1, var)
-# keep most variable genes
-expr_filtered <- expr[gene_variance > quantile(gene_variance, 0.75), ]
+#wgcna check which samples are good to use
+gsg <- goodSamplesGenes(expr_t, verbose = 3)
+expr_t <- expr_t[gsg$goodSamples, gsg$goodGenes]
 
-
-
-# Transpose for wgcna
-
-datExpr <- t(expr_filtered)
+# Check for outlier samples
+rsampleTree <- hclust(dist(expr_t), method = "average")
+plot(sampleTree)
 
 
 #Pick soft threshold:
