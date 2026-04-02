@@ -46,13 +46,17 @@ This also serves as a strong foundation before adding multimodal data layers.
 
 ## Contributors
 
-Shailja Dhanuka - 
-Data acquisition
-Preprocessing the data
-WGCNA and module gene identification
-Designed the workflow pipeline and tool choice
-GitHub management and organization
+## Shailja Dhanuka
 
-Ushta Samal - 
+-  **Data acquisition**, sourcing and organizing relevant biological datasets for analysis  
+- Performed **data preprocessing**, including cleaning, normalization, and quality control  
+-  **WGCNA (Weighted Gene Co-expression Network Analysis)** to identify gene modules and key clusters  
+-  **Module gene identification** to extract biologically significant gene groups  
+- Designed the **end-to-end workflow pipeline**, selecting appropriate tools and methodologies for each stage  
+- Managed **tool selectionn** to ensure efficiency and reproducibility  
+- Handled **GitHub repository management**, including structure, version control, and documentation organization  
 
+## Ushta Samal - 
+## Cindy 
+## Mahita 
 
