@@ -61,6 +61,6 @@ This also serves as a strong foundation before adding multimodal data layers.
 - Designed the **end-to-end workflow pipeline**, selecting appropriate tools and methodologies for each stage  
 
 ## Cindy 
-- Performed Aracne 
+- Performed ARACNe to infer direct TF-to-target relationships from the gene modules found from WGCNA
 ## Mahita 
 
