@@ -56,7 +56,11 @@ This also serves as a strong foundation before adding multimodal data layers.
 - Managed **tool selectionn** to ensure efficiency and reproducibility  
 - Handled **GitHub repository management**, including structure, version control, and documentation organization  
 
-## Ushta Samal - 
+## Ushta Samal
+- Performed Cytoscape and identified hub genes
+- Designed the **end-to-end workflow pipeline**, selecting appropriate tools and methodologies for each stage  
+
 ## Cindy 
+- Performed Aracne 
 ## Mahita 
 
