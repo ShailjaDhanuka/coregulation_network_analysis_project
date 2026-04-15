@@ -48,7 +48,6 @@ This also serves as a strong foundation before adding multimodal data layers.
 
 ## Shailja Dhanuka
 
--  **Data acquisition**, sourcing and organizing relevant biological datasets for analysis  
 - Performed **data preprocessing**, including cleaning, normalization, and quality control  
 -  **WGCNA (Weighted Gene Co-expression Network Analysis)** to identify gene modules and key clusters  
 -  **Module gene identification** to extract biologically significant gene groups  
@@ -62,4 +61,5 @@ This also serves as a strong foundation before adding multimodal data layers.
 ## Cindy 
 - Performed ARACNe to infer direct TF-to-target relationships from the gene modules found from WGCNA
 ## Mahita 
+-  **Data acquisition**, sourcing of relevant biological datasets for analysis  
 
