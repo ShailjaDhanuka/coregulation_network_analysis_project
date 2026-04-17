@@ -4,16 +4,17 @@ library(dplyr)
 options(stringsAsFactors = FALSE)
 
 setwd("./coregulation_network_analysis_project")
-plot_dir   <- "plots"
-output_dir <- "./"
+plot_dir   <- "workflow/WGCNA/plots/"
+output_dir <- "data/WGCNA/"
+input_dir<-"data/WGCNA/"
 dir.create(plot_dir, recursive = TRUE, showWarnings = FALSE)
 
 # ── Load everything ───────────────────────────────────────────────────────────
-pb           <- readRDS("wgcna_input_matrix.rds")
+pb           <- readRDS(paste0(input_dir,"wgcna_input_matrix.rds"))
 pb_meta      <- attr(pb, "metadata")
-net          <- readRDS("wgcna_net.rds")
-MEs          <- readRDS("module_eigengenes.rds")
-module_genes <- readRDS("module_gene_lists.rds")
+net          <- readRDS(paste0(input_dir,"wgcna_net.rds"))
+MEs          <- readRDS(paste0(input_dir,"module_eigengenes.rds"))
+module_genes <- readRDS(paste0(input_dir,"module_gene_lists.rds"))
 softPower    <- 15  # update if you changed this
 
 # Rebuild traits
@@ -23,20 +24,21 @@ traits <- data.frame(
 )
 
 # ── Module eigengene heatmap ──────────────────────────────────────────────────
-ME_matrix <- MEs
-colnames(ME_matrix) <- gsub("^ME", "", colnames(ME_matrix))
-ME_matrix <- ME_matrix[, colnames(ME_matrix) != "grey"]
+# Order samples: asymptomatic first, then symptomatic
+sample_order <- order(traits$symptomatic)
+ME_matrix_ordered <- ME_matrix[sample_order, ]
 
-# Add symptomatic annotation for columns
+# Update annotation
 sample_annotation <- data.frame(
-  row.names   = rownames(ME_matrix),
-  symptomatic = factor(traits$symptomatic, labels = c("Asymptomatic", "Symptomatic"))
+  row.names   = rownames(ME_matrix_ordered),
+  symptomatic = factor(traits$symptomatic[sample_order], 
+                       labels = c("Asymptomatic", "Symptomatic"))
 )
 
 png(file.path(plot_dir, "eigengene_heatmap.png"), width = 2400, height = 2000, res = 300)
-pheatmap(t(ME_matrix),
+pheatmap(t(ME_matrix_ordered),
          cluster_rows    = TRUE,
-         cluster_cols    = TRUE,
+         cluster_cols    = FALSE,   # FALSE to preserve our custom column order
          show_colnames   = TRUE,
          annotation_col  = sample_annotation,
          fontsize        = 8,

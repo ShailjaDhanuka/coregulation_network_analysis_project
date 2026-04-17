@@ -133,10 +133,22 @@ module_trait_cor  <- cor(MEs_aligned, traits_aligned, use = "pairwise.complete.o
 module_trait_pval <- corPvalueStudent(module_trait_cor, nrow(MEs_aligned))
 
 # ── Heatmap ───────────────────────────────────────────────────────────────────
-png(file.path(plot_dir, "module_trait_heatmap.png"), width = 1200, height = 2400, res = 300)
+traits_two <- data.frame(
+  row.names    = rownames(pb),
+  symptomatic  = pb_meta$symptomatic[order(as.numeric(as.character(pb_meta$human)))],
+  asymptomatic = 1 - pb_meta$symptomatic[order(as.numeric(as.character(pb_meta$human)))]
+)
+
+# Rerun correlation with both columns
+module_trait_cor  <- cor(MEs_aligned, traits_two[rownames(MEs_aligned), ], 
+                         use = "pairwise.complete.obs")
+module_trait_pval <- corPvalueStudent(module_trait_cor, nrow(MEs_aligned))
+
+# Replot
+png(file.path(plot_dir, "module_trait_heatmap.png"), width = 1600, height = 2400, res = 300)
 labeledHeatmap(
   Matrix        = module_trait_cor,
-  xLabels       = "Symptomatic",
+  xLabels       = c("Symptomatic", "Asymptomatic"),
   yLabels       = rownames(module_trait_cor),
   colorLabels   = FALSE,
   colors        = blueWhiteRed(50),
