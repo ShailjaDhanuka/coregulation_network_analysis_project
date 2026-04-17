@@ -1,10 +1,10 @@
 library(Seurat)
 
 # Load Seurat object
-pb_obj <- readRDS("pseudobulked_seu_obj.rds")
+pb_obj <- readRDS("wgcna_input_matrix.rds")
 
 expr <- as.matrix(
-  GetAssayData(readRDS("pseudobulked_seu_obj.rds"), assay = "RNA", layer = "data")
+  GetAssayData(readRDS("wgcna_input_matrix.rds"), assay = "RNA", layer = "data")
 )
 
 # Ensure rownames exist
