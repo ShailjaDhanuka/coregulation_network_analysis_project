@@ -1,9 +1,13 @@
 library(viper)
 library(dplyr)
 
+outdir <- "data/VIPER"
+dir.create(outdir, recursive = TRUE, showWarnings = FALSE)
+cat("Output directory:", outdir, "\n\n")
+
 cat("=== Loading expression matrix ===\n")
 
-mat <- readRDS("wgcna_input_matrix.rds")
+mat <- readRDS("data/WGCNA/wgcna_input_matrix.rds")
 cat("Raw matrix dimensions:", dim(mat), "\n")
 cat("Raw rownames (samples):", head(rownames(mat)), "\n")
 cat("Raw colnames (genes):", head(colnames(mat)), "\n")
@@ -13,8 +17,8 @@ cat("Transposed matrix dimensions:", dim(expr_mat), "\n")
 
 cat("\n=== Loading ARACNe network ===\n")
 
-#Put aracne txt here!!!
-raw <- read.delim("output/group2_aracne.txt", header = TRUE, stringsAsFactors = FALSE)
+#Put aracne txt here!!! YOU CAN CHANGE IT TO YOUR ARACNE FILE NAME!
+raw <- read.delim("data/ARACNe/red_aracne.txt", header = TRUE, stringsAsFactors = FALSE)
 colnames(raw) <- c("tf", "target", "mi")
 raw <- raw[complete.cases(raw), ]
 
@@ -104,9 +108,9 @@ cat("\n=== Saving results ===\n")
 
 write.csv(
   as.data.frame(viper_result),
-  "viper_activity_scores.csv",
+  file.path("data/VIPER", "viper_activity_scores.csv"),
   quote = FALSE
 )
-cat("Saved: viper_activity_scores.csv\n")
+cat("Saved to:", file.path(outdir, "viper_activity_scores.csv"), "\n")
 
 cat("\n=== VIPER pipeline complete ===\n")
